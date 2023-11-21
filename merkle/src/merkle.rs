@@ -42,7 +42,7 @@ impl MerkleNode {
         {
             Ok(_) => Ok(()),
             Err(e) => {
-                eprintln!("Error saving to DB: {}", e); // Log the error
+                eprintln!("Error saving to DB: {}", e);
                 Err(e.into())
             }
         }
@@ -104,7 +104,7 @@ pub async fn create_and_store_merkle_tree(
     if nodes.len() != expected_total_nodes {
         let err = std::io::Error::new(
             std::io::ErrorKind::NotFound,
-            "The total number of nodes does not match the expected count.",
+            "The total number of nodes does not match the expected count",
         );
         return Err(Box::new(err));
     }
@@ -250,6 +250,13 @@ pub async fn fetch_merkle_tree_from_db(
     nodes.sort_by(|a, b| a.index.cmp(&b.index));
 
     Ok(nodes)
+}
+
+// List and print available DynamoDB tables
+pub async fn list_tables(client: &Client) -> Result<(), DynamoError> {
+    let resp = client.list_tables().send().await?;
+    println!("Tables: {:?}", resp.table_names());
+    Ok(())
 }
 
 // Quick Helper to check the givne number is a power of two
