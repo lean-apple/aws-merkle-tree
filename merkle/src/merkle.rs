@@ -11,7 +11,7 @@ pub struct MerkleNode {
 }
 
 impl MerkleNode {
-    // Creates a new MerkleNode given an index and a value like potential leaf value
+    // Creates a new MerkleNode given an index and a value like potential leaf datum
     fn new(index: u32, value: &str) -> Self {
         let hash = hex::encode(Sha3_256::digest(value.as_bytes()));
         MerkleNode { index, hash }
@@ -29,7 +29,7 @@ impl MerkleNode {
         item
     }
 
-    /// Store new MerkleTree Node in DynamoDB table
+    // Store new MerkleTree Node in DynamoDB table
     async fn save_to_db(&self, client: &Client, table_name: &str) -> Result<(), DynamoError> {
         let dynamo_item = self.clone().into_dynamodb_item();
 
@@ -50,7 +50,6 @@ impl MerkleNode {
 }
 
 /// Create and store the Merkle tree to DynamoDB
-
 pub async fn create_and_store_merkle_tree(
     client: &Client,
     table_name: &str,
