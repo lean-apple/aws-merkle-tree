@@ -3,17 +3,19 @@ mod tests {
 
     use aws_config::meta::region::RegionProviderChain;
     use aws_config::BehaviorVersion;
-    use aws_sdk_dynamodb::{Client, Error};
-
+    use aws_merkle_tree::handler::handler;
     use aws_merkle_tree::merkle::*;
+    use aws_sdk_dynamodb::Client;
+    use tokio;
 
     const AWS_REGION: &str = "eu-west-3";
     const MERKLE_TREE_TABLE: &str = "DevMerkleTree";
-    use tokio;
+    use lambda_http::http::header::HeaderMap;
+    use lambda_http::http::Method;
+    use lambda_http::http::Request;
 
     #[tokio::test]
     async fn global_function_flow_ok() {
-
         // Setup region config for client
         let region_provider = RegionProviderChain::default_provider().or_else(AWS_REGION);
         let config = aws_config::defaults(BehaviorVersion::v2023_11_09())
@@ -42,7 +44,7 @@ mod tests {
             .expect("Failed to fetch Merkle Tree nodes from AWS DynamoDB");
 
         // Check validity of Merkle tree
-         assert!(is_valid_merkle_tree(&nodes));
+        assert!(is_valid_merkle_tree(&nodes));
 
         // Check we can get the node infos for the index 7 - On teh
         match get_node_info_from_db(&dynamodb_client, MERKLE_TREE_TABLE, 7).await {
@@ -56,5 +58,27 @@ mod tests {
                 eprintln!("Error fetching node info: {:?}", e);
             }
         }
+    }
+
+    #[tokio::test]
+    async fn test_node_get_api() {
+        
+        let mut query_string_parameters = HeaderMap::new();
+        query_string_parameters.insert("index", "7".parse().unwrap());
+
+        let request = Request::builder()
+            .method(Method::GET)
+            .uri("https://example.com?index=7")
+            .header("Content-Type", "application/json")
+            .body(lambda_http::Body::Empty)
+            .expect("Failed to build request");
+
+        let response = handler(request).await.expect("Handler failed");
+
+        // Inspect the response
+        assert!(
+            response.status().is_success(),
+            "Response was not successful"
+        );
     }
 }
