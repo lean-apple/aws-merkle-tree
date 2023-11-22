@@ -49,7 +49,8 @@ impl MerkleNode {
     }
 }
 
-/// Create and store the Merkle tree to DynamoDB
+/// Create and store ALL the Merkle tree to DynamoDB
+/// Generate the merkle tree from the leaves data argument
 pub async fn create_and_store_merkle_tree(
     client: &Client,
     table_name: &str,
@@ -109,7 +110,7 @@ pub async fn create_and_store_merkle_tree(
         return Err(Box::new(err));
     }
 
-    // Store all nodes in the DB
+    // Store all nodes in the DB ie. all the new tree
     for node in nodes {
         node.save_to_db(client, table_name).await?;
     }
@@ -218,12 +219,16 @@ pub async fn fetch_merkle_tree_from_db(
     let mut last_evaluated_key = None;
 
     loop {
-        let resp = client
+        let resp = match client
             .scan()
             .table_name(table_name)
             .set_exclusive_start_key(last_evaluated_key)
             .send()
-            .await?;
+            .await
+        {
+            Ok(resp) => resp,
+            Err(err) => return Err(DynamoError::from(err)),
+        };
 
         if let Some(items) = resp.items {
             for item in items {

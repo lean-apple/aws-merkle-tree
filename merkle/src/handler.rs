@@ -9,6 +9,7 @@ use url::{ParseError, Url};
 const AWS_REGION: &str = "eu-west-3";
 const MERKLE_TREE_TABLE: &str = "DevMerkleTree";
 
+// Lambda Handler to trigger the request to get the node data from the index
 pub async fn handler(event: Request) -> Result<Response<lambda_http::Body>, Error> {
     // Extract parameters from the request
     let query_params = event.into_parts();
@@ -25,10 +26,6 @@ pub async fn handler(event: Request) -> Result<Response<lambda_http::Body>, Erro
 
     match get_node_info_from_db(&dynamodb_client, &MERKLE_TREE_TABLE, query_index).await {
         Ok((depth, offset, hash)) => {
-
-            print!("hheloo3 depth {:?}", depth);
-            print!("hheloo3 offset {:?}", offset);
-            print!("hheloo3 hash {:?}", hash);
             // Create a successful response
             Ok(Response::builder()
                 .status(200)
