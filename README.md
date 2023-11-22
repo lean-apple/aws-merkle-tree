@@ -32,7 +32,7 @@ Notice the target `x86_64-unknown-linux-musl` was specified. This target is impo
 
 2. Tests
 
-Basic tests are available at `/tests/tests.rs`, they can be checked them :
+Basic tests are available at `/tests/tests.rs`, they can be checked :
 
 ```bash
 cd merkle
