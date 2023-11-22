@@ -3,16 +3,21 @@
 **Project Overview**
 This project aims to create a binary Merkle tree data store and expose it through a simple API route.
 
-The Merkle tree will be persisted using AWS DynamoDB, and the API route will be implemented using AWS Lambda and the [AWS CDK - Cloud Development Kit](https://aws.amazon.com/fr/cdk/).
+- The Merkle tree and especially their node leaves will be persisted using AWS DynamoDB, and the API route will be implemented using AWS Lambda and the [AWS CDK - Cloud Development Kit](https://aws.amazon.com/fr/cdk/).
 
-[Amazon DynamoDB](https://aws.amazon.com/fr/dynamodb) was picked as a storage mechanism as it provides a highly scalable and fully managed NoSQL database service, making it suitable for efficiently storing and retrieving the Merkle tree data in a distributed and serverless environment.
+- [Amazon DynamoDB](https://aws.amazon.com/fr/dynamodb) was picked as a storage mechanism as it provides a highly scalable and fully managed NoSQL database service, making it suitable for efficiently storing and retrieving the Merkle tree data in a distributed and serverless environment.
+
+- The Merkle Tree was initialize in DynamoDB with 8 data leave to build a Binary Merkle Tree of 15 leaves.
+
+Only the method  `get_node_info_from_db` is exposed. 
+It enables to get the node infos from requetsing the index. 
 
 ### Prerequisites
 
-Before any first step, ensure you have the following prerequisites:
+Before any first step, ensure you have the following prerequisites :
 
-Rust installed (https://www.rust-lang.org/tools/install)
-AWS CDK installed (https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html)
+- Rust installed (https://www.rust-lang.org/tools/install) 
+- AWS CDK installed (https://docs.aws.amazon.com/cdk/latest/guide/getting_started.html)
 
 ### Compile the Merkle Tree Implementation
 
@@ -34,9 +39,11 @@ cd merkle
 cargo test
 ```
 
-### Deploy the Merkle Tree on AWS CDK
+### Deploy the Merkle Tree with AWS CDK
 
-Once the build of the Merkle Tree is done, it was needed to copy this binary : 
+The merkle tree code was deployed through [AWS CDK](https://aws.amazon.com/fr/cdk/). 
+
+Once the build of the Merkle Tree is done, it was needed to copy the merkle binary : 
 
 ```bash
 cp merkle/target/x86_64-unknown-linux-musl/release/merkle cdk-deploy/
@@ -46,7 +53,7 @@ This step is necessary because AWS CDK and AWS Lambda natively support languages
 
 It is needed then to zip it. 
 
-A global script is available at this path `/merkle/build.sh` to enable the right copying of the file and its formatting.
+A global script is available at the path `/merkle/build.sh` to enable the right copying of the file and its formatting.
 
 1. Bootstrapping
 

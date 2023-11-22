@@ -169,7 +169,7 @@ pub async fn get_node_info_from_db(
     }
 }
 
-/// Helper to check merkle tree and its nodes
+/// Helper to check a merkle tree and its nodes
 pub fn is_valid_merkle_tree(nodes: &[MerkleNode]) -> bool {
     // Assuming the last node is the root
     let root = nodes.last().unwrap();
@@ -211,6 +211,7 @@ fn is_valid_node(node: &MerkleNode, nodes: &[MerkleNode]) -> bool {
     is_valid_node(left_child, nodes) && is_valid_node(right_child, nodes)
 }
 
+// Helper for test to fetch all merkle tree nodes in a sorted way
 pub async fn fetch_merkle_tree_from_db(
     client: &Client,
     table_name: &str,
@@ -264,7 +265,7 @@ pub async fn list_tables(client: &Client) -> Result<(), DynamoError> {
     Ok(())
 }
 
-// Quick Helper to check the givne number is a power of two
+// Helper to check the given number is a power of two
 fn is_power_of_two(n: usize) -> bool {
     n != 0 && (n & (n - 1)) == 0
 }

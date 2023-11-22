@@ -19,7 +19,7 @@ chmod +x ./lambda/bootstrap
 cd lambda
 zip lambda.zip bootstrap
 
-# Move the zip file to the project root
+# Move the zip file to the cdk folder
 mv lambda.zip ../../cdk-deploy
 
 # Clean up
