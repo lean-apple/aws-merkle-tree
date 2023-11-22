@@ -92,7 +92,7 @@ pub async fn create_and_store_merkle_tree(
             };
 
             let parent_node = MerkleNode {
-                index: (nodes.len() + 1) as u32, // Indexing for parent nodes
+                index: nodes.len() as u32,
                 hash: combined_hash,
             };
 
