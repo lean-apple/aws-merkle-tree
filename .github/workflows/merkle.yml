@@ -1,0 +1,30 @@
+name: CI to check Merkle Code
+
+on:
+  pull_request:
+    paths:
+      - 'merkle/**'
+  push:
+    branches: ["main"]
+    paths:
+      - 'merkle/**'
+    paths-ignore:
+      - 'README.md'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./merkle
+    steps:
+      
+      - uses: actions/checkout@v4
+      - name: Install Protobuf Compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      - name: Build
+        run: cargo build --release
+      - name: Test 
+        run: cargo test
