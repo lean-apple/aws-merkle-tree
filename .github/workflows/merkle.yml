@@ -22,6 +22,16 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
+      - name: Log in to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+              access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              region: eu-west-3
+      - name: Test AWS CLI Command
+        run: |
+            aws s3 ls
       - name: Build
         run: cargo build --release
       - name: Test 
