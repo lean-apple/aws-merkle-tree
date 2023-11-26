@@ -1,172 +1,88 @@
-use aws_sdk_dynamodb::{types::AttributeValue, Client, Error as DynamoError};
 use serde::{Deserialize, Serialize};
 use sha3::{Digest, Sha3_256};
-use std::collections::HashMap;
-use std::error::Error as BasicError;
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct MerkleNode {
-    index: u32,
-    hash: String,
+    pub index: u32,
+    pub hash: String, // Encode Hash
 }
 
 impl MerkleNode {
-    // Creates a new MerkleNode given an index and a value like potential leaf datum
-    fn new(index: u32, value: &str) -> Self {
+    // Create a new Merkl node given an index and a value like potential leaf datum
+    pub fn new(index: u32, value: &str) -> Self {
         let hash = hex::encode(Sha3_256::digest(value.as_bytes()));
         MerkleNode { index, hash }
     }
-    // Convert MerkleNode into AWS DynamoDB item
-    fn into_dynamodb_item(self) -> HashMap<String, AttributeValue> {
-        let mut item = HashMap::new();
 
-        item.insert(
-            "index".to_string(),
-            AttributeValue::N(self.index.to_string()),
-        );
-        item.insert("hash".to_string(), AttributeValue::S(self.hash));
+    /// Create a parent node from the left and right children hashes
+    pub fn to_parent_node(left: &MerkleNode, right: &MerkleNode, index: u32) -> Self {
+        let left_hash = hex::decode(&left.hash).expect("Invalid hex in left child hash");
+        let right_hash = hex::decode(&right.hash).expect("Invalid hex in left child hash");
 
-        item
-    }
+        // Hash the concatenation of the values of the two child nodes
+        let combined = [&left_hash[..], &right_hash[..]].concat();
+        let combined_hash = Sha3_256::digest(&combined);
+        
+        let parent_hash = hex::encode(combined_hash);
 
-    // Store new MerkleTree Node in DynamoDB table
-    async fn save_to_db(&self, client: &Client, table_name: &str) -> Result<(), DynamoError> {
-        let dynamo_item = self.clone().into_dynamodb_item();
+        println!("encoded parent_hash {:?}",  parent_hash);
 
-        match client
-            .put_item()
-            .table_name(table_name)
-            .set_item(Some(dynamo_item))
-            .send()
-            .await
-        {
-            Ok(_) => Ok(()),
-            Err(e) => {
-                eprintln!("Error saving to DB: {}", e);
-                Err(e.into())
-            }
+        MerkleNode {
+            index,
+            hash: parent_hash,
         }
     }
 }
 
-/// Create and store ALL the Merkle tree to DynamoDB
-/// Generate the merkle tree from the leaves data argument
-pub async fn create_and_store_merkle_tree(
-    client: &Client,
-    table_name: &str,
-    leaves: &[&str],
-) -> Result<(), Box<dyn BasicError>> {
-    // We assume we are in a total binary tree with a number of two children for every node
-    if !is_power_of_two(leaves.len()) {
-        let err = std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            "The number of leaves must be a power of two.",
-        );
-        return Err(Box::new(err));
-    }
-
+// Create the entire Merkle tree and return all the nodes
+pub fn create_tree(leaves: &[&str]) -> Result<Vec<MerkleNode>, Box<dyn std::error::Error>> {
     let mut nodes = Vec::new();
 
-    // Create leaves
+    // Create leaf nodes
     for (i, &leaf) in leaves.iter().enumerate() {
         nodes.push(MerkleNode::new(i as u32, leaf));
     }
 
-    // Build the rest of the tree
-    let mut current_level_nodes = leaves.len();
-    while current_level_nodes > 1 {
-        let previous_level_start = nodes.len() - current_level_nodes;
-        for i in (0..current_level_nodes).step_by(2) {
-            let left_child = &nodes[previous_level_start + i];
-            let right_child = &nodes[previous_level_start + i + 1];
+    // Complete the leaf level to a power of two
+    let next_power_of_two = leaves.len().next_power_of_two();
+    while nodes.len() < next_power_of_two {
+        let last = nodes.last().unwrap().clone();
+        nodes.push(MerkleNode::new(nodes.len() as u32, &last.hash));
+    }
 
-            let combined_hash = {
-                let mut hasher = Sha3_256::new();
-                hasher.update(
-                    &hex::decode(&left_child.hash).expect("Invalid hex in left child hash"),
-                );
-                hasher.update(
-                    &hex::decode(&right_child.hash).expect("Invalid hex in right child hash"),
-                );
-                hex::encode(hasher.finalize())
-            };
+    // Build the tree from the leaves up to the root
+    let mut current_level_size = next_power_of_two;
+    let mut level_start = 0;
+    while current_level_size > 1 {
+        for i in (0..current_level_size).step_by(2) {
+            let left_child = &nodes[level_start + i];
+            let right_child = &nodes[level_start + i + 1];
 
-            let parent_node = MerkleNode {
-                index: nodes.len() as u32,
-                hash: combined_hash,
-            };
-
+            let parent_node =
+                MerkleNode::to_parent_node(left_child, right_child, nodes.len() as u32);
             nodes.push(parent_node);
         }
-        current_level_nodes /= 2;
+        level_start += current_level_size;
+        current_level_size /= 2;
     }
-    // Check the total number of nodes at the end
+
+    // Reverse nodes to put the root at index 0 and reassign indices
+    nodes.reverse();
+    for (new_index, node) in nodes.iter_mut().enumerate() {
+        node.index = new_index as u32;
+    }
+
+    // Check the total number of nodes
     let expected_total_nodes = 2 * leaves.len() - 1;
     if nodes.len() != expected_total_nodes {
-        let err = std::io::Error::new(
+        return Err(Box::new(std::io::Error::new(
             std::io::ErrorKind::NotFound,
             "The total number of nodes does not match the expected count",
-        );
-        return Err(Box::new(err));
+        )));
     }
 
-    // Store all nodes in the DB ie. all the new tree
-    for node in nodes {
-        node.save_to_db(client, table_name).await?;
-    }
-
-    Ok(())
-}
-
-// Get node info ie (depth, offset, leave value) in DynamoDB from node index
-pub async fn get_node_info_from_db(
-    client: &Client,
-    table_name: &str,
-    index: u32,
-) -> Result<(usize, usize, String), Box<dyn BasicError>> {
-    let resp = client
-        .get_item()
-        .table_name(table_name)
-        .key("index", AttributeValue::N(index.to_string()))
-        .send()
-        .await;
-
-    match resp {
-        Ok(response) => {
-            if let Some(item) = response.item {
-                let hash = item
-                    .get("hash")
-                    .and_then(|v| v.as_s().ok())
-                    .cloned()
-                    .unwrap_or_default();
-
-                let mut depth: usize = 0;
-
-                if index == 0 {
-                    return Ok((0, 0, hash));
-                }
-
-                let mut nodes_numb_test: usize = 1;
-
-                // While the possible number of nodes is below the node index
-                // We haven't reached the final layer
-                while nodes_numb_test <= index as usize {
-                    depth += 1;
-                    nodes_numb_test += 2usize.pow(depth as u32);
-                }
-
-                // We are looking for the number of nodes of the previous layer
-                // to substract them from the index to get the offset
-                let prev_nodes_layer_total = nodes_numb_test - 2_usize.pow(depth as u32);
-
-                Ok((depth, index as usize - prev_nodes_layer_total, hash))
-            } else {
-                let err = std::io::Error::new(std::io::ErrorKind::NotFound, "Node not found");
-                Err(Box::new(err))
-            }
-        }
-        Err(e) => Err(Box::new(e)),
-    }
+    // Return all nodes
+    Ok(nodes)
 }
 
 /// Helper to check a merkle tree and its nodes
@@ -209,63 +125,4 @@ fn is_valid_node(node: &MerkleNode, nodes: &[MerkleNode]) -> bool {
 
     // Recursively check both children
     is_valid_node(left_child, nodes) && is_valid_node(right_child, nodes)
-}
-
-// Helper for test to fetch all merkle tree nodes in a sorted way
-pub async fn fetch_merkle_tree_from_db(
-    client: &Client,
-    table_name: &str,
-) -> Result<Vec<MerkleNode>, DynamoError> {
-    let mut nodes = Vec::new();
-    let mut last_evaluated_key = None;
-
-    loop {
-        let resp = match client
-            .scan()
-            .table_name(table_name)
-            .set_exclusive_start_key(last_evaluated_key)
-            .send()
-            .await
-        {
-            Ok(resp) => resp,
-            Err(err) => return Err(DynamoError::from(err)),
-        };
-
-        if let Some(items) = resp.items {
-            for item in items {
-                let index = match item.get("index") {
-                    Some(v) => v.as_n().unwrap().parse::<u32>().unwrap_or_default(),
-                    None => 0,
-                };
-                let hash = match item.get("hash") {
-                    Some(v) => v.as_s().unwrap().clone(),
-                    None => String::new(),
-                };
-
-                nodes.push(MerkleNode { index, hash });
-            }
-        }
-        if resp.last_evaluated_key.is_none() {
-            break;
-        }
-
-        last_evaluated_key = resp.last_evaluated_key;
-    }
-
-    // Sort nodes by index
-    nodes.sort_by(|a, b| a.index.cmp(&b.index));
-
-    Ok(nodes)
-}
-
-// List and print available DynamoDB tables
-pub async fn list_tables(client: &Client) -> Result<(), DynamoError> {
-    let resp = client.list_tables().send().await?;
-    println!("Tables: {:?}", resp.table_names());
-    Ok(())
-}
-
-// Helper to check the given number is a power of two
-fn is_power_of_two(n: usize) -> bool {
-    n != 0 && (n & (n - 1)) == 0
 }

@@ -1,4 +1,4 @@
-use crate::merkle::get_node_info_from_db;
+use crate::db::get_node_info_from_db;
 use aws_config::meta::region::RegionProviderChain;
 use aws_config::BehaviorVersion;
 use aws_sdk_dynamodb::Client;
@@ -22,9 +22,9 @@ pub async fn handler(event: Request) -> Result<Response<lambda_http::Body>, Erro
         .region(region_provider)
         .load()
         .await;
-    let dynamodb_client = Client::new(&config.into());
+    let dynamodb_client = Client::new(&config);
 
-    match get_node_info_from_db(&dynamodb_client, &MERKLE_TREE_TABLE, query_index).await {
+    match get_node_info_from_db(&dynamodb_client, MERKLE_TREE_TABLE, query_index).await {
         Ok((depth, offset, hash)) => {
             // Create a successful response
             Ok(Response::builder()
