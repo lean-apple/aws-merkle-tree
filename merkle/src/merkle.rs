@@ -22,10 +22,8 @@ impl MerkleNode {
         // Hash the concatenation of the values of the two child nodes
         let combined = [&left_hash[..], &right_hash[..]].concat();
         let combined_hash = Sha3_256::digest(&combined);
-        
-        let parent_hash = hex::encode(combined_hash);
 
-        println!("encoded parent_hash {:?}",  parent_hash);
+        let parent_hash = hex::encode(combined_hash);
 
         MerkleNode {
             index,

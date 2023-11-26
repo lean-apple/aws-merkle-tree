@@ -2,7 +2,7 @@
 mod tests {
 
     use aws_config::{meta::region::RegionProviderChain, BehaviorVersion};
-    use aws_merkle_tree::{handler::handler, merkle::*, db::*};
+    use aws_merkle_tree::{db::*, handler::handler, merkle::*};
     use aws_sdk_dynamodb::Client;
     use lambda_http::http::{HeaderMap, Method, Request};
 
@@ -83,7 +83,6 @@ mod tests {
                 }
             }
         }
-
     }
 
     #[tokio::test]

@@ -1,10 +1,10 @@
-use crate::merkle::{MerkleNode, create_tree};
+use crate::merkle::{create_tree, MerkleNode};
 use aws_sdk_dynamodb::{types::AttributeValue, Client, Error as DynamoError};
 use std::collections::HashMap;
 use std::error::Error as BasicError;
 
 // Helper to fetch all merkle tree nodes in a sorted way
-// From DynamoDB 
+// From DynamoDB
 pub async fn fetch_merkle_tree_from_db(
     client: &Client,
     table_name: &str,
@@ -81,7 +81,6 @@ pub async fn create_and_store_merkle_tree(
     table_name: &str,
     leaves: &[&str],
 ) -> Result<(), Box<dyn BasicError>> {
-
     let tree_nodes = create_tree(leaves).expect("Failed to build Merkle tree from given leaves");
 
     // Store all nodes in the DB ie. all the new tree
