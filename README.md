@@ -101,7 +101,7 @@ It is sometimes needed to complete the `/cdk-deploy/lib/cdk-deploy-stack.ts` con
     // Define a policy statement that grants access to DynamoDB
     const dynamoDbPolicy = new iam.PolicyStatement({
       actions: ['dynamodb:GetItem'],
-      resources: ['arn:aws:dynamodb:[region]:[user-id]:table/DevMerkleTree'],
+      resources: ['arn:aws:dynamodb:[region]:[user-id]:table/[table-name]'],
     });
 
     // Attach the policy to the Lambda function's execution role
@@ -113,5 +113,19 @@ It is sometimes needed to complete the `/cdk-deploy/lib/cdk-deploy-stack.ts` con
 
 ```
 
-It can be also done directly through IAM policies part of AWS' console.
+It can be also done directly through AWS's IAM tool, by creating a policy in this style : 
 
+```yml
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "dynamodb:GetItem",
+            "Resource": "arn:aws:dynamodb:[region]:[user-id]:table/[table-name]"
+        }
+    ]
+}
+``````
+
+and attaching it to the lambda and/or the deploy stack role. 
