@@ -49,7 +49,7 @@ Once the build of the Merkle Tree is done, it was needed to copy the merkle bina
 cp merkle/target/x86_64-unknown-linux-musl/release/merkle cdk-deploy/
 ```
 
-This step is necessary because AWS CDK and AWS Lambda natively support languages like Typescript, Python, and Java, but Rust is not natively supported. By copying the Rust binary into the deployment directory, we ensure that it can be executed within the Lambda function environment.
+This step is necessary because AWS CDK and AWS Lambda natively support languages like Typescript, Python, and Java, but not Rust. By copying the Rust binary into the deployment directory, we ensure that it can be executed within the Lambda function environment.
 
 It is needed then to zip it. 
 
@@ -81,7 +81,6 @@ It will deploy the Lambda function and create the necessary AWS resources.
 It is posible to deploy the compiled binary to AWS Lambda with [`cargo lambda`](https://www.cargo-lambda.info/). 
 
 `cargo lambda build` and `cargo lambda deploy` can be used in that way from the `merkle` folder to directly deploy on AWS lambda, assuming aws config is already set up. 
-
 
 ### Testing the API
 

@@ -1,0 +1,44 @@
+name: Deploy merkle bianry with AWS-CDK
+
+on:
+  pull_request:
+  push:
+    branches: ["main"]
+    paths-ignore:
+        - 'README.md'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      
+      - name: Build Binary and move at the right place
+        run: |
+            chmod +x ./merkle/build.sh
+            ./merkle/build.sh
+
+      - name: Set up AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: eu-west-3
+      
+      - name: Install AWS-CDK
+        run: npm install -g aws-cdk
+      
+      - name: CDK Deploy
+        run: |
+              cd cdk-deploy
+              npm install
+              cdk deploy
+
+      - name: Node request Example  
+        run: curl "https://4dexz31qxb.execute-api.eu-west-3.amazonaws.com/prod/merkleinfos?index=4
