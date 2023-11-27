@@ -41,4 +41,4 @@ jobs:
               cdk deploy
 
       - name: Node request Example  
-        run: curl "https://4dexz31qxb.execute-api.eu-west-3.amazonaws.com/prod/merkleinfos?index=4
+        run: curl "https://4dexz31qxb.execute-api.eu-west-3.amazonaws.com/prod/merkleinfos?index=0"
