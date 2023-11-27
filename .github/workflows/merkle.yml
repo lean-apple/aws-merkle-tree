@@ -1,0 +1,36 @@
+name: CI to check Merkle Code
+
+on:
+  pull_request:
+    paths:
+      - 'merkle/**'
+  push:
+    branches: ["main"]
+    paths:
+      - 'merkle/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./merkle
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Protobuf Compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y protobuf-compiler
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: eu-west-3
+      - name: Check AWS DynamoDB Table
+        run: |
+          aws dynamodb list-tables
+      - name: Build
+        run: cargo build --release
+      - name: Test 
+        run: cargo test
