@@ -1,4 +1,4 @@
-name: CI to check Merkle Code
+name: Different check for Merkle Logic
 
 on:
   pull_request:

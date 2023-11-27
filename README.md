@@ -49,7 +49,7 @@ Once the build of the Merkle Tree is done, it was needed to copy the merkle bina
 cp merkle/target/x86_64-unknown-linux-musl/release/merkle cdk-deploy/
 ```
 
-This step is necessary because AWS CDK and AWS Lambda natively support languages like Typescript, Python, and Java, but Rust is not natively supported. By copying the Rust binary into the deployment directory, we ensure that it can be executed within the Lambda function environment.
+This step is necessary because AWS CDK and AWS Lambda natively support languages like Typescript, Python, and Java, but not Rust. By copying the Rust binary into the deployment directory, we ensure that it can be executed within the Lambda function environment.
 
 It is needed then to zip it. 
 
@@ -82,7 +82,6 @@ It is posible to deploy the compiled binary to AWS Lambda with [`cargo lambda`](
 
 `cargo lambda build` and `cargo lambda deploy` can be used in that way from the `merkle` folder to directly deploy on AWS lambda, assuming aws config is already set up. 
 
-
 ### Testing the API
 
 Still with the assumption that you have the AWS CLI configured with the necessary credentials to be able to request DynamoDB table : 
@@ -102,7 +101,7 @@ It is sometimes needed to complete the `/cdk-deploy/lib/cdk-deploy-stack.ts` con
     // Define a policy statement that grants access to DynamoDB
     const dynamoDbPolicy = new iam.PolicyStatement({
       actions: ['dynamodb:GetItem'],
-      resources: ['arn:aws:dynamodb:[region]:[user-id]:table/DevMerkleTree'],
+      resources: ['arn:aws:dynamodb:[region]:[user-id]:table/[table-name]'],
     });
 
     // Attach the policy to the Lambda function's execution role
@@ -114,5 +113,19 @@ It is sometimes needed to complete the `/cdk-deploy/lib/cdk-deploy-stack.ts` con
 
 ```
 
-It can be also done directly through IAM policies part of AWS' console.
+It can be also done directly through AWS's IAM tool, by creating a policy in this style : 
 
+```yml
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": "dynamodb:GetItem",
+            "Resource": "arn:aws:dynamodb:[region]:[user-id]:table/[table-name]"
+        }
+    ]
+}
+``````
+
+and attaching it to the lambda and/or the deploy stack role. 
